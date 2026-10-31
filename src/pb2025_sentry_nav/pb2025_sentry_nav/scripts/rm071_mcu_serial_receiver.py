@@ -262,7 +262,6 @@ class McuSerialReceiver(Node):
 
     def _build_cmd_frame(self, vx=None, vy=None, wz=None) -> bytes:
         # 与既有 MCU 协议保持一致的符号处理与帧格式。
-        vx = self.current_vx
         vx = self.current_vx if vx is None else float(vx)
         vy = self.current_vy if vy is None else float(vy)
         wz = self.current_wz if wz is None else float(wz)
