@@ -57,7 +57,7 @@ exec python3 "$WORKSPACE/tools/mapping_session.py" \
   ros2 launch pb2025_nav_bringup rm_navigation_reality_launch.py \
   mode:=mapping use_robot_state_pub:=True \
   use_rviz:="${SENTRY_USE_RVIZ:-True}" \
-  enable_auto_explore:="${SENTRY_AUTO_EXPLORE:-True}" \
+  enable_auto_explore:="${SENTRY_AUTO_EXPLORE:-False}" \
   mapping_enable_mcu_serial:="${SENTRY_ENABLE_MCU_SERIAL:-True}" \
   mcu_serial_port:="${SENTRY_SERIAL_PORT:-/dev/serial_port}" \
   map:="$MAP_YAML" prior_pcd_file:="$MAP_PCD" "$@"
