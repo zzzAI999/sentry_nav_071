@@ -128,7 +128,7 @@ def generate_launch_description():
 
     slam = LaunchConfiguration("slam")
 
-    forward_only_enabled = is_mode("navigation")
+    forward_only_enabled = LaunchConfiguration("forward_only_enabled")
 
     world = LaunchConfiguration("world")
 
@@ -301,6 +301,11 @@ def generate_launch_description():
 
     declare_use_rviz_cmd = DeclareLaunchArgument(
         "use_rviz", default_value="True", description="Whether to start RVIZ"
+    )
+
+    declare_forward_only_enabled_cmd = DeclareLaunchArgument(
+        "forward_only_enabled", default_value="False",
+        description="Optional forward-only driving; disabled for the omnidirectional chassis",
     )
 
     declare_enable_pgm_initial_pose_cmd = DeclareLaunchArgument(
@@ -679,6 +684,8 @@ def generate_launch_description():
     ld.add_action(declare_mapping_bringup_delay_sec_cmd)
 
     ld.add_action(declare_use_rviz_cmd)
+
+    ld.add_action(declare_forward_only_enabled_cmd)
 
     ld.add_action(declare_enable_pgm_initial_pose_cmd)
 

@@ -13,7 +13,8 @@
         </RecoveryNode>
       </RateController>
       <FollowPath path="{path}"
-                  controller_id="FollowPath"/>
+                  controller_id="FollowPath"
+                  goal_checker_id="general_goal_checker"/>
     </PipelineSequence>
   </BehaviorTree>
 </root>

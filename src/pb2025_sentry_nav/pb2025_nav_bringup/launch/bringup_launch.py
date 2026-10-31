@@ -138,7 +138,7 @@ def generate_launch_description():
     )
     declare_forward_only_enabled_cmd = DeclareLaunchArgument(
         "forward_only_enabled",
-        default_value="True",
+        default_value="False",
         description="Disable lateral velocity and keep the chassis facing forward",
     )
 
