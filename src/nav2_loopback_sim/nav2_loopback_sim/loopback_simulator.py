@@ -20,6 +20,7 @@ from geometry_msgs.msg import Quaternion, TransformStamped, Vector3
 from nav_msgs.msg import OccupancyGrid, Odometry
 import rclpy
 from rclpy.duration import Duration
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rosgraph_msgs.msg import Clock
@@ -380,10 +381,14 @@ class LoopbackSimulator(Node):
 def main():
     rclpy.init()
     loopback_simulator = LoopbackSimulator()
-    rclpy.spin(loopback_simulator)
-    loopback_simulator.destroy_node()
-    rclpy.shutdown()
-    exit(0)
+    try:
+        rclpy.spin(loopback_simulator)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        loopback_simulator.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

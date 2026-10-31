@@ -85,9 +85,15 @@ def generate_launch_description():
                           output="screen", parameters=parameters, remappings=remappings))
     nodes.extend([
         Node(package="nav2_lifecycle_manager", executable="lifecycle_manager",
-             name="lifecycle_manager_navigation", output="screen", parameters=[{
+             name="lifecycle_manager_localization", output="screen", parameters=[{
                  "use_sim_time": False, "autostart": True,
-                 "node_names": ["map_server"] + [item[1] for item in server_specs]}]),
+                 "node_names": ["map_server"]}]),
+        Node(package="nav2_lifecycle_manager", executable="lifecycle_manager",
+             name="lifecycle_manager_navigation", output="screen", parameters=[{
+                 "use_sim_time": False, "autostart": False,
+                 "node_names": [item[1] for item in server_specs]}]),
+        Node(package="pb2025_sentry_nav", executable="rm071_sim_startup.py",
+             name="rm071_sim_startup", output="screen", parameters=[{"use_sim_time": False}]),
         Node(package="pb2025_sentry_nav", executable="rm071_two_point_route.py",
              name="rm071_two_point_route", condition=IfCondition(enable_route),
              output="screen", parameters=[{"use_sim_time": False}],

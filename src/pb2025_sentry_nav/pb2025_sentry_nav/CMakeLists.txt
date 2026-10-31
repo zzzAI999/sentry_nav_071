@@ -10,6 +10,7 @@ install(PROGRAMS
   scripts/rm071_mcu_serial_receiver.py
   scripts/rm071_map_recorder.py
   scripts/rm071_two_point_route.py
+  scripts/rm071_sim_startup.py
   scripts/rm071_pgm_initial_pose.py
   scripts/rm071_valid_map_filter.py
   scripts/rm071_valid_scan_filter.py

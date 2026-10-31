@@ -77,7 +77,8 @@ fi
 export ROS_DOMAIN_ID="$simulation_domain"
 echo "Simulation map: ${paths[0]}"
 echo "Simulation DDS domain: $ROS_DOMAIN_ID; velocity output: sim/cmd_vel."
-echo "Use RViz 2D Pose Estimate to place the virtual robot, then send navigation goals."
+echo "The map opens first. Use RViz 2D Pose Estimate to place the virtual robot."
+echo "Nav2 starts after the initial pose and TF are ready; then send navigation goals."
 
 exec ros2 launch pb2025_nav_bringup map_simulation_launch.py \
   map:="${paths[0]}" use_rviz:="${SENTRY_USE_RVIZ:-True}" \
