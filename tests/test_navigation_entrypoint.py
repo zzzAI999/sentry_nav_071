@@ -123,6 +123,8 @@ class NavigationEntrypointTest(unittest.TestCase):
         self.assertIn("map_simulation_launch.py", args)
         self.assertIn(f"map:={self.yaml_path}", args)
         self.assertIn("enable_two_point_route:=False", args)
+        self.assertFalse(any(arg.endswith(":=") for arg in args), args)
+        self.assertFalse(any(arg.startswith("route_") for arg in args), args)
         self.assertEqual(self.domain_capture.read_text(encoding="utf-8").strip(), "71")
 
     def test_simulation_can_start_the_same_two_point_task(self):

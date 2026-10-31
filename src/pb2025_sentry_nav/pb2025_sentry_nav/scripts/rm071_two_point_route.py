@@ -156,7 +156,7 @@ def main(arguments=None):
             self.client = ActionClient(self, NavigateToPose, "navigate_to_pose")
             self.tf_buffer = Buffer()
             self.tf_listener = TransformListener(self.tf_buffer, self)
-            self.handle = None
+            self.goal_handle = None
             self.pending = None
             self.result = None
             self.localization_ready = False
@@ -243,7 +243,7 @@ def main(arguments=None):
         def start(self, target):
             if self.stopping:
                 raise InterruptedError("route interrupted before sending the next goal")
-            self.handle = None
+            self.goal_handle = None
             self.result = None
             goal = NavigateToPose.Goal()
             goal.pose.header.frame_id = "map"
@@ -253,12 +253,12 @@ def main(arguments=None):
             goal.behavior_tree = self.tree
             self.pending = self.client.send_goal_async(goal)
             # Resolve an in-flight request even after Ctrl+C so it can be canceled.
-            self.handle = self.wait(self.pending, 10.0)
+            self.goal_handle = self.wait(self.pending, 10.0)
             self.pending = None
-            if not self.handle.accepted:
-                self.handle = None
+            if not self.goal_handle.accepted:
+                self.goal_handle = None
                 raise RuntimeError("Nav2 rejected the goal")
-            self.result = self.handle.get_result_async()
+            self.result = self.goal_handle.get_result_async()
 
         def status(self):
             if self.result is None or not self.result.done():
@@ -270,22 +270,22 @@ def main(arguments=None):
 
         def cancel(self):
             if self.pending is not None:
-                self.handle = self.wait(self.pending, 5.0)
+                self.goal_handle = self.wait(self.pending, 5.0)
                 self.pending = None
-                if self.handle.accepted:
-                    self.result = self.handle.get_result_async()
-            if self.handle is None or not self.handle.accepted:
+                if self.goal_handle.accepted:
+                    self.result = self.goal_handle.get_result_async()
+            if self.goal_handle is None or not self.goal_handle.accepted:
                 return
             if self.result is not None and self.result.done():
-                self.handle = None
+                self.goal_handle = None
                 return
-            response = self.wait(self.handle.cancel_goal_async(), 5.0)
+            response = self.wait(self.goal_handle.cancel_goal_async(), 5.0)
             if not response.goals_canceling and not self.result.done():
                 raise RuntimeError("Nav2 did not confirm cancellation; no next goal was sent")
             self.wait(self.result, 10.0)
             if self.status() not in ("succeeded", "canceled"):
                 raise RuntimeError("navigation failed while ending the current goal")
-            self.handle = None
+            self.goal_handle = None
 
     rclpy.init(args=arguments, signal_handler_options=SignalHandlerOptions.NO)
     navigator = None

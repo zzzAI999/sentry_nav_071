@@ -183,7 +183,8 @@ class SimulationTest(unittest.TestCase):
         self.assertEqual(overlay["fake_vel_transform"]["ros__parameters"]["output_cmd_vel_topic"], "sim/cmd_vel")
         for key in ("local_costmap", "global_costmap"):
             settings = overlay[key][key]["ros__parameters"]
-            self.assertEqual(settings["static_layer"]["map_topic"], "map")
+            self.assertEqual(settings["static_layer"]["map_topic"], "/map")
+            self.assertEqual(settings["obstacle_layer"]["scan"]["topic"], "/obstacle_scan")
             self.assertNotIn("intensity_voxel_layer", settings["plugins"])
             self.assertNotIn("robot_radius", settings)
             self.assertEqual(real[key][key]["ros__parameters"]["robot_radius"], 0.32)

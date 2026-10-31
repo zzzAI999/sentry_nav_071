@@ -9,6 +9,7 @@ ROUTE_SCRIPT="$WORKSPACE/src/pb2025_sentry_nav/pb2025_sentry_nav/scripts/rm071_t
 route_enabled=False
 points=("" "" "" "")
 route_args=()
+route_launch_args=()
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   echo "Usage: ./start_navigation_sim.sh [--two-point | x1 y1 x2 y2] [use_rviz:=False]"
@@ -46,6 +47,8 @@ set -u
 if [[ "$route_enabled" == True ]]; then
   coordinates="$(python3 "$ROUTE_SCRIPT" --print-points "${route_args[@]}")" || exit 2
   mapfile -t points <<< "$coordinates"
+  route_launch_args=(route_x1:="${points[0]}" route_y1:="${points[1]}"
+                     route_x2:="${points[2]}" route_y2:="${points[3]}")
 fi
 mkdir -p -- "$MAP_ROOT"
 MAP_ROOT="$(cd -- "$MAP_ROOT" && pwd)"
@@ -79,5 +82,4 @@ echo "Use RViz 2D Pose Estimate to place the virtual robot, then send navigation
 exec ros2 launch pb2025_nav_bringup map_simulation_launch.py \
   map:="${paths[0]}" use_rviz:="${SENTRY_USE_RVIZ:-True}" \
   enable_two_point_route:="$route_enabled" \
-  route_x1:="${points[0]}" route_y1:="${points[1]}" \
-  route_x2:="${points[2]}" route_y2:="${points[3]}" "$@"
+  "${route_launch_args[@]}" "$@"
