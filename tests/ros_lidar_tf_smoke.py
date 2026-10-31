@@ -41,13 +41,13 @@ def main():
         rotation = transform.transform.rotation
         expected_roll = 3.14
         if not all(abs(actual - expected) < 1e-5 for actual, expected in
-                   ((position.x, -0.07), (position.y, 0.0), (position.z, 0.46))):
+                   ((position.x, -0.07), (position.y, 0.0), (position.z, 0.52))):
             raise RuntimeError(f"unexpected lidar translation: {position}")
         if (abs(abs(rotation.x) - abs(math.sin(expected_roll / 2))) > 1e-5
                 or abs(abs(rotation.w) - abs(math.cos(expected_roll / 2))) > 1e-5
                 or abs(rotation.y) > 1e-5 or abs(rotation.z) > 1e-5):
             raise RuntimeError(f"unexpected lidar orientation: {rotation}")
-        print("TF base_footprint -> front_mid360: x=-0.07 y=0 z=0.46 roll=3.14 rad")
+        print("TF base_footprint -> front_mid360: x=-0.07 y=0 z=0.52 roll=3.14 rad")
     finally:
         del listener
         node.destroy_node()

@@ -21,7 +21,7 @@
         <pose>0 0 0.15 0 0 0</pose>
         <xmacro_block name="rm25_example_robot" sticker_type="${global_armor_sticker_type}" chassis_height="${chassis_height}" gimbal_yaw_height="${gimbal_yaw_height}" gimbal_pitch_height="${gimbal_pitch_height}"/>
         <!--livox-->
-        <xmacro_block name="livox" prefix="front_" parent="chassis" pose="-0.07 0.0 0.383 3.14 0.0 0.0" update_rate="20" samples="1875"/>
+        <xmacro_block name="livox" prefix="front_" parent="chassis" pose="-0.07 0.0 0.443 3.14 0.0 0.0" update_rate="20" samples="1875"/>
 
         <!--plugins-->
         <!-- https://github.com/gazebosim/gz-sim/blob/ign-gazebo6/src/systems -->

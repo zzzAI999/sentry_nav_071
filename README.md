@@ -15,7 +15,7 @@ colcon build --base-paths src --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=
 source install/setup.bash
 ```
 
-`small_gicp/` 固定为 MiniPC 使用的版本 `78f2e7a221720625eb95271ad9da21a04fb77f86`。Livox 驱动目录中保留 MiniPC 原有的 SDK 头文件及 amd64、arm64 动态库。当前机器人模型的雷达安装为相对车体中心 x=-0.07 m、y=0，离地 z=0.46 m，绕 X 轴倒装 3.14 rad；车体模型的 `chassis` 原点离地 0.077 m，因此雷达相对 `chassis` 的 z=0.383 m。Point-LIO 的雷达/内置 IMU 相对标定未修改。雷达 IP、网口和外参仍需上车确认；安装位置改变后应重新建图，不能假定旧地图仍匹配。仓库不包含运行时生成的 PGM、YAML 或 PCD 地图。
+`small_gicp/` 固定为 MiniPC 使用的版本 `78f2e7a221720625eb95271ad9da21a04fb77f86`。Livox 驱动目录中保留 MiniPC 原有的 SDK 头文件及 amd64、arm64 动态库。当前机器人模型的雷达安装为相对车体中心 x=-0.07 m、y=0，离地 z=0.52 m，绕 X 轴倒装 3.14 rad；车体模型的 `chassis` 原点离地 0.077 m，因此雷达相对 `chassis` 的 z=0.443 m。Point-LIO 的雷达/内置 IMU 相对标定未修改。雷达 IP、网口和外参仍需上车确认；安装位置改变后应重新建图，不能假定旧地图仍匹配。仓库不包含运行时生成的 PGM、YAML 或 PCD 地图。
 
 ## 建图
 

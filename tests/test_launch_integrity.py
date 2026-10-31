@@ -75,7 +75,7 @@ class LaunchIntegrityTest(unittest.TestCase):
         x, y, z, roll, pitch, yaw = map(float, lidar.get("pose").split())
         self.assertAlmostEqual(x, -0.07)
         self.assertAlmostEqual(y, 0.0)
-        self.assertAlmostEqual(chassis_height + z, 0.46)
+        self.assertAlmostEqual(chassis_height + z, 0.52)
         self.assertAlmostEqual(roll, 3.14)
         self.assertAlmostEqual(pitch, 0.0)
         self.assertAlmostEqual(yaw, 0.0)
