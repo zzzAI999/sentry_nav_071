@@ -485,22 +485,8 @@ def generate_launch_description():
                 "raw_map_topic": "/map",
                 "valid_map_topic": "/rm071/valid_map",
                 "min_known_cells": 1,
-                "min_free_cells": ParameterValue(
-                    PythonExpression([
-                        "int(", explore_map_ready_min_free_cells, ") if ",
-                        *mode_expr("mapping"),
-                        " else 1",
-                    ]),
-                    value_type=int,
-                ),
-                "min_unknown_cells": ParameterValue(
-                    PythonExpression([
-                        "int(", explore_map_ready_min_unknown_cells, ") if ",
-                        *mode_expr("mapping"),
-                        " else 0",
-                    ]),
-                    value_type=int,
-                ),
+                "min_free_cells": 1,
+                "min_unknown_cells": 0,
                 "warn_every_invalid": 20,
             }
         ],

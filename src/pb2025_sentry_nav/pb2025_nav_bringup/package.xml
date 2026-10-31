@@ -29,6 +29,7 @@
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>explore_lite</exec_depend>
   <exec_depend>rviz2</exec_depend>
+  <exec_depend>nav2_loopback_sim</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

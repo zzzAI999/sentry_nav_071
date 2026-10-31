@@ -1,0 +1,56 @@
+# Applied after config/reality/nav2_params.yaml only by the simulation launch.
+loopback_simulator:
+  ros__parameters:
+    update_duration: 0.02
+    base_frame_id: base_footprint
+    map_frame_id: map
+    odom_frame_id: odom
+    scan_frame_id: sim_scan
+    publish_clock: false
+    enable_stamped_cmd_vel: false
+    scan_publish_dur: 0.1
+    scan_angle_increment: 0.017453292519943295
+    scan_range_max: 12.0
+
+fake_vel_transform:
+  ros__parameters:
+    forward_only_enabled: false
+    output_cmd_vel_topic: sim/cmd_vel
+    teleop_cmd_vel_topic: sim/teleop_cmd_vel
+    teleop_active_topic: sim/teleop_active
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      plugins: [static_layer, obstacle_layer, inflation_layer]
+      static_layer:
+        map_topic: map
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        observation_sources: scan
+        scan:
+          topic: obstacle_scan
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          inf_is_valid: true
+          obstacle_max_range: 5.0
+          raytrace_max_range: 6.0
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      plugins: [static_layer, obstacle_layer, inflation_layer]
+      static_layer:
+        map_topic: map
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        observation_sources: scan
+        scan:
+          topic: obstacle_scan
+          data_type: LaserScan
+          marking: true
+          clearing: true
+          inf_is_valid: true
+          obstacle_max_range: 10.0
+          raytrace_max_range: 12.0

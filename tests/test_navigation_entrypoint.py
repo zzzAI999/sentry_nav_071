@@ -30,13 +30,14 @@ class NavigationEntrypointTest(unittest.TestCase):
         self.workspace = root / "workspace with spaces"
         self.commands = root / "commands"
         self.commands.mkdir()
-        for name in ("start_navigation.sh", "config/two_point_route.yaml", "tools/map_manifest.py",
+        for name in ("start_navigation.sh", "start_navigation_sim.sh", "config/two_point_route.yaml", "tools/map_manifest.py",
                      "src/pb2025_sentry_nav/pb2025_sentry_nav/scripts/rm071_two_point_route.py"):
             target = self.workspace / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
         self.write_command("python3", f"exec {shlex.quote(bash_path(sys.executable))} \"$@\"\n")
-        self.write_command("ros2", 'printf "%s\\n" "$@" > "$SENTRY_TEST_CAPTURE"\n')
+        self.write_command("ros2", 'printf "%s\\n" "$@" > "$SENTRY_TEST_CAPTURE"\n'
+                           'printf "%s\\n" "${ROS_DOMAIN_ID:-0}" > "$SENTRY_TEST_DOMAIN"\n')
         if os.name == "nt":
             # Git Bash lacks flock. Linux runs the real lock implementation.
             self.write_command("flock", "exit 0\n")
@@ -58,11 +59,14 @@ class NavigationEntrypointTest(unittest.TestCase):
         spec.loader.exec_module(manifest)
         manifest.record_map(self.map_root / "latest.json", self.yaml_path, self.pcd_path)
         self.capture = root / "ros_arguments.txt"
+        self.domain_capture = root / "domain.txt"
         self.env = {**os.environ, "SENTRY_ROS_SETUP": bash_path(self.setup),
                     "SENTRY_INSTALL_SETUP": bash_path(self.setup),
                     "SENTRY_MAP_ROOT": bash_path(self.map_root),
                     "SENTRY_USE_RVIZ": "False", "SENTRY_ENABLE_MCU_SERIAL": "False",
-                    "SENTRY_TEST_CAPTURE": bash_path(self.capture)}
+                    "SENTRY_TEST_CAPTURE": bash_path(self.capture),
+                    "SENTRY_TEST_DOMAIN": bash_path(self.domain_capture),
+                    "ROS_DOMAIN_ID": "0", "SENTRY_SIM_DOMAIN_ID": "71"}
         self.env.pop("SENTRY_ROUTE_CONFIG", None)
 
     def write_command(self, name, body):
@@ -70,9 +74,9 @@ class NavigationEntrypointTest(unittest.TestCase):
         path.write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
         path.chmod(0o755)
 
-    def run_navigation(self, *args, expected=0):
+    def run_navigation(self, *args, expected=0, script="start_navigation.sh"):
         self.capture.unlink(missing_ok=True)
-        result = subprocess.run([BASH, bash_path(self.workspace / "start_navigation.sh"), *args],
+        result = subprocess.run([BASH, bash_path(self.workspace / script), *args],
                                 env=self.env, capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
         return self.capture.read_text(encoding="utf-8").splitlines() if self.capture.exists() else []
@@ -107,12 +111,32 @@ class NavigationEntrypointTest(unittest.TestCase):
         self.assertEqual(self.run_navigation("1", "2", "3", "4", expected=2), [])
 
     def test_shell_syntax_and_line_endings(self):
-        for name in ("start_mapping.sh", "start_navigation.sh"):
+        for name in ("start_mapping.sh", "start_navigation.sh", "start_navigation_sim.sh"):
             with self.subTest(name=name):
                 source = ROOT / name
                 self.assertNotIn(b"\r\n", source.read_bytes())
                 result = subprocess.run([BASH, "-n", bash_path(source)], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_simulation_uses_latest_map_and_an_isolated_domain(self):
+        args = self.run_navigation(script="start_navigation_sim.sh")
+        self.assertIn("map_simulation_launch.py", args)
+        self.assertIn(f"map:={self.yaml_path}", args)
+        self.assertIn("enable_two_point_route:=False", args)
+        self.assertEqual(self.domain_capture.read_text(encoding="utf-8").strip(), "71")
+
+    def test_simulation_can_start_the_same_two_point_task(self):
+        args = self.run_navigation("1", "2", "3", "4", script="start_navigation_sim.sh")
+        self.assertIn("enable_two_point_route:=True", args)
+        self.assertIn("route_x1:=1.0", args)
+        self.assertIn("route_y2:=4.0", args)
+
+    def test_simulation_refuses_the_live_domain_or_hardware_options(self):
+        self.env["SENTRY_SIM_DOMAIN_ID"] = "0"
+        self.assertEqual(self.run_navigation(script="start_navigation_sim.sh", expected=2), [])
+        self.env["SENTRY_SIM_DOMAIN_ID"] = "71"
+        self.assertEqual(self.run_navigation("enable_mcu_status_nav:=True",
+                                            script="start_navigation_sim.sh", expected=2), [])
 
 
 if __name__ == "__main__":
