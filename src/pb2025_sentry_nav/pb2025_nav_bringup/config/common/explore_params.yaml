@@ -1,0 +1,39 @@
+/**:
+  ros__parameters:
+    # Explore queries the same virtual base frame that Nav2 controls.
+    # SLAM, LiDAR projection and odometry still keep base_footprint in nav2_params.yaml.
+    robot_base_frame: gimbal_yaw_fake
+
+    # Use raw SLAM map to detect unknown frontiers.
+    costmap_topic: /rm071/valid_map
+    costmap_updates_topic: /rm071/valid_map_updates
+
+    # Explore behavior tuning
+    return_to_init: true
+    visualize: true
+    planner_frequency: 2.0
+    progress_timeout: 20.0
+    potential_scale: 3.0
+    orientation_scale: 0.0
+    gain_scale: 1.0
+    transform_tolerance: 0.3
+    min_frontier_size: 0.5
+    navigation_costmap_topic: global_costmap/costmap
+    # /global_costmap/costmap is an OccupancyGrid in the 0-100 range, not the
+    # raw Nav2 0-255 costmap. A value of 38 corresponds approximately to the
+    # planner's native safe_cost=98 and prevents immediate planner rejection.
+    navigation_goal_max_cost: 38
+    navigation_goal_search_radius: 3.0
+    # Inflation already includes the 0.32 m robot radius. Keep only a small
+    # local goal margin so 0.8 m passages remain usable.
+    navigation_goal_clearance_m: 0.10
+    navigation_goal_min_robot_distance_m: 0.6
+    navigation_goal_max_projection_distance_m: 2.0
+
+    # A single controller abort must not end a fresh mapping run. Retry the
+    # frontier at alternate safe cells and require sustained evidence before
+    # declaring exploration complete.
+    failed_navigation_goal_clearance_m: 0.5
+    navigation_goal_abort_retries: 2
+    minimum_exploration_duration_sec: 120.0
+    completion_confirmation_cycles: 3

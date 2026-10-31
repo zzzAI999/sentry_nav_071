@@ -1,0 +1,6 @@
+*.sh text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.xmacro text eol=lf
+*.so binary

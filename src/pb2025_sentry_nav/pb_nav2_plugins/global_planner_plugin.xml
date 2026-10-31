@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<library path="planners">
+  <class
+    type="pb_nav2_plugins::InflationEscapePlanner"
+    base_class_type="nav2_core::GlobalPlanner">
+    <description>
+      Theta* planner wrapper that escapes non-lethal inflation zones and projects
+      unsafe goals to the nearest safe costmap cell.
+    </description>
+  </class>
+</library>

@@ -1,0 +1,14 @@
+/build/
+/install/
+/log/
+/maps/
+__pycache__/
+*.py[cod]
+*.log
+*.bag
+*.db3
+*.pcd
+*.bak*
+*.before_*
+.vscode/
+/src/pb2025_sentry_nav/point_lio/Log/*.txt
