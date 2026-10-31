@@ -250,6 +250,8 @@ SmallGicpRelocalizationNode::SmallGicpRelocalizationNode(const rclcpp::NodeOptio
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_unique<tf2_ros::TransformListener>(*tf_buffer_);
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
+  localization_ready_pub_ = this->create_publisher<std_msgs::msg::Bool>(
+    "localization_ready", rclcpp::QoS(1).reliable().transient_local());
 
   loadGlobalMap(prior_pcd_file_);
 
@@ -716,12 +718,13 @@ void SmallGicpRelocalizationNode::performRegistration()
     translation_gate, yaw_gate);
 
   bool accepted = false;
-  if (
-    coarse_found && coarse_relocalization_pending_ &&
-    !trusted_initial_pose_received_)
+  if (!trusted_initial_pose_received_)
   {
+    // Initial fine-only results need the same consensus before the map seed
+    // can be applied; otherwise they can bypass and disable initial consensus.
     const bool consensus_quality_ok =
-      result.converged && result.T_target_source.matrix().allFinite() &&
+      (coarse_found || acceptable) && result.converged &&
+      result.T_target_source.matrix().allFinite() &&
       inlier_ratio >= static_cast<double>(relocalization_consensus_min_inlier_ratio_) &&
       mean_error <= static_cast<double>(relocalization_consensus_max_mean_error_);
     if (consensus_quality_ok) {
@@ -826,6 +829,8 @@ void SmallGicpRelocalizationNode::acceptRegistrationPose(
   result_t_.translation() = smoothed_translation;
   result_t_.linear() = smoothed_q.normalized().toRotationMatrix();
   previous_result_t_ = result_t_;
+  registration_accepted_ = true;
+  last_accepted_registration_time_ = this->now();
   consecutive_reject_count_ = 0;
   coarse_relocalization_pending_ = false;
   relocalization_candidates_.clear();
@@ -836,6 +841,8 @@ void SmallGicpRelocalizationNode::applyMapFrameCorrection(
 {
   map_frame_correction_ = desired_map_to_odom * result_t_.inverse();
   has_pending_map_to_odom_seed_ = false;
+  map_frame_calibrated_ = true;
+  last_map_alignment_time_ = this->now();
 
   const Eigen::Vector3d translation = map_frame_correction_.translation();
   const Eigen::Matrix3d rotation = map_frame_correction_.rotation();
@@ -1167,6 +1174,20 @@ void SmallGicpRelocalizationNode::publishTransform()
   transform_stamped.transform.rotation.w = rotation.w();
 
   tf_broadcaster_->sendTransform(transform_stamped);
+
+  // Initial identity TF is also broadcast before registration. Automatic
+  // missions must wait for accepted registration and a settled map-frame seed.
+  std_msgs::msg::Bool ready;
+  if (registration_accepted_ && map_frame_calibrated_) {
+    const auto now = this->now();
+    // Do not refresh a stale correction's readiness merely by publishing TF.
+    const double scan_age = (now - last_scan_time_).seconds();
+    const double registration_age = (now - last_accepted_registration_time_).seconds();
+    ready.data = (now - last_map_alignment_time_).seconds() >= 1.0 &&
+      scan_age >= -0.2 && scan_age <= 2.0 &&
+      registration_age >= 0.0 && registration_age <= 10.0;
+  }
+  localization_ready_pub_->publish(ready);
 }
 
 void SmallGicpRelocalizationNode::initialPoseCallback(

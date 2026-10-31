@@ -117,8 +117,7 @@ private:
   // goal_response_callback(std::shared_future<NavigationGoalHandle::SharedPtr>
   // future);
   void reachedGoal(const NavigationGoalHandle::WrappedResult& result,
-                   const geometry_msgs::msg::Point& frontier_goal,
-                   const geometry_msgs::msg::Point& navigation_goal);
+                   const geometry_msgs::msg::Point& frontier_goal);
 
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
       marker_array_publisher_;
@@ -148,14 +147,9 @@ private:
   nav_msgs::msg::OccupancyGrid::SharedPtr navigation_costmap_;
 
   std::vector<geometry_msgs::msg::Point> frontier_blacklist_;
-  std::vector<geometry_msgs::msg::Point> failed_navigation_goals_;
-  geometry_msgs::msg::Point last_failed_frontier_goal_;
   geometry_msgs::msg::Point prev_goal_;
-  double prev_distance_;
-  rclcpp::Time last_progress_;
   rclcpp::Time exploration_started_at_;
   size_t last_markers_count_;
-  int consecutive_goal_aborts_ = 0;
   int no_frontier_cycles_ = 0;
   int exhausted_frontier_rounds_ = 0;
 
@@ -165,15 +159,12 @@ private:
   // parameters
   double planner_frequency_;
   double potential_scale_, orientation_scale_, gain_scale_;
-  double progress_timeout_;
   int navigation_goal_max_cost_;
   double navigation_goal_search_radius_;
   double navigation_goal_clearance_m_;
   double navigation_goal_min_robot_distance_m_;
   double navigation_goal_max_projection_distance_m_;
-  double failed_navigation_goal_clearance_m_;
   double minimum_exploration_duration_sec_;
-  int navigation_goal_abort_retries_;
   int completion_confirmation_cycles_;
   bool visualize_;
   bool return_to_init_;

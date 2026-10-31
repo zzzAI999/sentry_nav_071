@@ -33,6 +33,7 @@
 #include "small_gicp/pcl/pcl_point.hpp"
 #include "small_gicp/registration/reduction_omp.hpp"
 #include "small_gicp/registration/registration.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
@@ -76,6 +77,11 @@ private:
 
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcd_sub_;
   rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_sub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr localization_ready_pub_;
+  bool registration_accepted_ = false;
+  bool map_frame_calibrated_ = false;
+  rclcpp::Time last_map_alignment_time_;
+  rclcpp::Time last_accepted_registration_time_;
 
   int num_threads_;
   int num_neighbors_;

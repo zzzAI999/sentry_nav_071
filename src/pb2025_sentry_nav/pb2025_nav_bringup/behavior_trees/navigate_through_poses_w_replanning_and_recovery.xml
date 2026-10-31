@@ -2,24 +2,31 @@
 <root BTCPP_format="3"
       main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
-    <PipelineSequence name="NavigateThroughPosesWithReplanningOnly">
-      <RateController hz="3.0">
-        <ReactiveSequence>
-          <RemovePassedGoals input_goals="{goals}"
-                             output_goals="{goals}"
-                             radius="0.7"/>
-          <RecoveryNode number_of_retries="5"
-                        name="ComputePathThroughPosesRetry">
-            <ComputePathThroughPoses goals="{goals}"
-                                     path="{path}"
-                                     planner_id="GridBased"/>
-            <Wait wait_duration="0.3"/>
-          </RecoveryNode>
-        </ReactiveSequence>
-      </RateController>
-      <FollowPath path="{path}"
-                  controller_id="FollowPath"
-                  goal_checker_id="general_goal_checker"/>
-    </PipelineSequence>
+    <RetryUntilSuccessful num_attempts="-1">
+      <Fallback>
+        <PipelineSequence name="NavigateThroughPosesWithReplanningOnly">
+          <RateController hz="3.0">
+            <ReactiveSequence>
+              <RemovePassedGoals input_goals="{goals}"
+                                 output_goals="{goals}"
+                                 radius="0.7"/>
+              <RecoveryNode number_of_retries="5"
+                            name="ComputePathThroughPosesRetry">
+                <ComputePathThroughPoses goals="{goals}"
+                                         path="{path}"
+                                         planner_id="GridBased"/>
+                <Wait wait_duration="0.3"/>
+              </RecoveryNode>
+            </ReactiveSequence>
+          </RateController>
+          <FollowPath path="{path}"
+                      controller_id="FollowPath"
+                      goal_checker_id="general_goal_checker"/>
+        </PipelineSequence>
+        <Delay delay_msec="1000">
+          <AlwaysFailure/>
+        </Delay>
+      </Fallback>
+    </RetryUntilSuccessful>
   </BehaviorTree>
 </root>

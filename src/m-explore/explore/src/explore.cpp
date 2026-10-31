@@ -67,13 +67,10 @@ Explore::Explore()
   , tf_buffer_(this->get_clock())
   , tf_listener_(tf_buffer_)
   , costmap_client_(*this, &tf_buffer_)
-  , prev_distance_(0)
   , last_markers_count_(0)
 {
-  double timeout;
   double min_frontier_size;
   this->declare_parameter<float>("planner_frequency", 1.0);
-  this->declare_parameter<float>("progress_timeout", 30.0);
   this->declare_parameter<bool>("visualize", false);
   this->declare_parameter<float>("potential_scale", 1e-3);
   this->declare_parameter<float>("orientation_scale", 0.0);
@@ -88,13 +85,10 @@ Explore::Explore()
   this->declare_parameter<double>("navigation_goal_clearance_m", 0.35);
   this->declare_parameter<double>("navigation_goal_min_robot_distance_m", 0.0);
   this->declare_parameter<double>("navigation_goal_max_projection_distance_m", 0.0);
-  this->declare_parameter<double>("failed_navigation_goal_clearance_m", 0.5);
   this->declare_parameter<double>("minimum_exploration_duration_sec", 120.0);
-  this->declare_parameter<int>("navigation_goal_abort_retries", 3);
   this->declare_parameter<int>("completion_confirmation_cycles", 3);
 
   this->get_parameter("planner_frequency", planner_frequency_);
-  this->get_parameter("progress_timeout", timeout);
   this->get_parameter("visualize", visualize_);
   this->get_parameter("potential_scale", potential_scale_);
   this->get_parameter("orientation_scale", orientation_scale_);
@@ -114,19 +108,13 @@ Explore::Explore()
                       navigation_goal_min_robot_distance_m_);
   this->get_parameter("navigation_goal_max_projection_distance_m",
                       navigation_goal_max_projection_distance_m_);
-  this->get_parameter("failed_navigation_goal_clearance_m",
-                      failed_navigation_goal_clearance_m_);
   this->get_parameter("minimum_exploration_duration_sec",
                       minimum_exploration_duration_sec_);
-  this->get_parameter("navigation_goal_abort_retries",
-                      navigation_goal_abort_retries_);
   this->get_parameter("completion_confirmation_cycles",
                       completion_confirmation_cycles_);
-  navigation_goal_abort_retries_ = std::max(1, navigation_goal_abort_retries_);
   completion_confirmation_cycles_ =
       std::max(1, completion_confirmation_cycles_);
 
-  progress_timeout_ = timeout;
   move_base_client_ =
       rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
           this, ACTION_NAME);
@@ -165,8 +153,8 @@ Explore::Explore()
   }
   if (!navigation_costmap_) {
     RCLCPP_WARN(logger_,
-                "Navigation costmap validation is not ready yet; failed goals "
-                "will still be blacklisted by Nav2 result callbacks.");
+                "Navigation costmap validation is not ready yet; "
+                "waiting for safe navigation cells before sending goals.");
   }
 
   RCLCPP_INFO(logger_, "Waiting to connect to move_base nav2 server");
@@ -408,8 +396,6 @@ void Explore::makePlan()
           exhausted_frontier_rounds_, completion_confirmation_cycles_, elapsed,
           minimum_exploration_duration_sec_);
       frontier_blacklist_.clear();
-      consecutive_goal_aborts_ = 0;
-      last_progress_ = this->now();
       return;
     }
     RCLCPP_WARN(logger_,
@@ -429,23 +415,10 @@ void Explore::makePlan()
   RCLCPP_INFO(logger_, "Selected frontier target: (%.2f, %.2f), frontier size: %u",
               target_position.x, target_position.y, frontier->size);
 
-  // time out if we are not making any progress
+  // Elapsed time never excludes a target. Keep an accepted goal active.
   bool same_goal = same_point(prev_goal_, target_position);
 
   prev_goal_ = target_position;
-  if (!same_goal || prev_distance_ > frontier->min_distance) {
-    // we have different goal or we made some progress
-    last_progress_ = this->now();
-    prev_distance_ = frontier->min_distance;
-  }
-  // black list if we've made no progress for a long time
-  if ((this->now() - last_progress_ >
-      tf2::durationFromSec(progress_timeout_)) && !resuming_) {
-    frontier_blacklist_.push_back(target_position);
-    RCLCPP_DEBUG(logger_, "Adding current goal to black list");
-    makePlan();
-    return;
-  }
 
   // A resume command must re-evaluate the current frontier. The navigation
   // costmap may have become usable since the previous projection attempt.
@@ -500,7 +473,7 @@ void Explore::makePlan()
   // send_goal_options.feedback_callback =
   //   std::bind(&Explore::feedback_callback, this, _1, _2);
   send_goal_options.result_callback =
-      [this, target_position, navigation_target_position, goal_sequence](
+      [this, target_position, goal_sequence](
           const NavigationGoalHandle::WrappedResult& result) {
         if (goal_sequence != navigation_goal_sequence_) {
           RCLCPP_DEBUG(
@@ -510,7 +483,7 @@ void Explore::makePlan()
               goal_sequence, navigation_goal_sequence_);
           return;
         }
-        reachedGoal(result, target_position, navigation_target_position);
+        reachedGoal(result, target_position);
       };
   send_goal_options.goal_response_callback =
       [this, goal_sequence](NavigationGoalHandle::SharedPtr goal_handle) {
@@ -716,7 +689,6 @@ bool Explore::projectGoalToClearNavigationCell(
   int rejected_robot_distance_count = 0;
   int rejected_projection_distance_count = 0;
   int rejected_not_backoff_count = 0;
-  int rejected_previous_failure_count = 0;
   const double frontier_robot_distance = point_distance(robot_position, goal);
   constexpr double kFrontierBackoffMinM = 0.10;
 
@@ -740,18 +712,6 @@ bool Explore::projectGoalToClearNavigationCell(
       candidate.x = origin_x + (x + 0.5) * resolution;
       candidate.y = origin_y + (y + 0.5) * resolution;
       candidate.z = goal.z;
-      const bool near_failed_navigation_goal =
-          std::any_of(
-              failed_navigation_goals_.begin(),
-              failed_navigation_goals_.end(),
-              [this, &candidate](const geometry_msgs::msg::Point& failed) {
-                return point_distance(candidate, failed) <
-                       failed_navigation_goal_clearance_m_;
-              });
-      if (near_failed_navigation_goal) {
-        ++rejected_previous_failure_count;
-        continue;
-      }
       const double robot_distance = point_distance(robot_position, candidate);
       if (require_frontier_backoff &&
           robot_distance + kFrontierBackoffMinM >= frontier_robot_distance) {
@@ -784,13 +744,11 @@ bool Explore::projectGoalToClearNavigationCell(
                 "No navigation candidate accepted near frontier (%.2f, %.2f): "
                 "clear_candidates=%d, rejected_too_close=%d, "
                 "rejected_projection_far=%d, rejected_not_backoff=%d, "
-                "rejected_previous_failure=%d, "
                 "min_robot_dist=%.2fm, max_projection_dist=%.2fm",
                 goal.x, goal.y, clear_candidate_count,
                 rejected_robot_distance_count,
                 rejected_projection_distance_count,
                 rejected_not_backoff_count,
-                rejected_previous_failure_count,
                 navigation_goal_min_robot_distance_m_,
                 navigation_goal_max_projection_distance_m_);
     return false;
@@ -841,8 +799,7 @@ double Explore::explorationElapsedSeconds() const
 }
 
 void Explore::reachedGoal(const NavigationGoalHandle::WrappedResult& result,
-                          const geometry_msgs::msg::Point& frontier_goal,
-                          const geometry_msgs::msg::Point& navigation_goal)
+                          const geometry_msgs::msg::Point& frontier_goal)
 {
   navigation_goal_handle_.reset();
   if (!exploration_active_) {
@@ -854,39 +811,13 @@ void Explore::reachedGoal(const NavigationGoalHandle::WrappedResult& result,
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
       RCLCPP_DEBUG(logger_, "Goal was successful");
-      consecutive_goal_aborts_ = 0;
       break;
     case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_DEBUG(logger_, "Goal was aborted");
-      if (point_distance(last_failed_frontier_goal_, frontier_goal) < 0.75) {
-        ++consecutive_goal_aborts_;
-      } else {
-        consecutive_goal_aborts_ = 1;
-      }
-      last_failed_frontier_goal_ = frontier_goal;
-      failed_navigation_goals_.push_back(navigation_goal);
-      if (failed_navigation_goals_.size() > 100) {
-        failed_navigation_goals_.erase(failed_navigation_goals_.begin());
-      }
-      last_progress_ = this->now();
-      if (consecutive_goal_aborts_ >= navigation_goal_abort_retries_) {
-        frontier_blacklist_.push_back(frontier_goal);
-        RCLCPP_WARN(
-            logger_,
-            "Navigation goal aborted %d times near frontier (%.2f, %.2f); "
-            "blacklisting this frontier for the current recovery round.",
-            consecutive_goal_aborts_, frontier_goal.x, frontier_goal.y);
-        consecutive_goal_aborts_ = 0;
-      } else {
-        RCLCPP_WARN(
-            logger_,
-            "Navigation goal aborted near (%.2f, %.2f), retry %d/%d; "
-            "the failed Nav2 target (%.2f, %.2f) will be avoided.",
-            frontier_goal.x, frontier_goal.y, consecutive_goal_aborts_,
-            navigation_goal_abort_retries_, navigation_goal.x,
-            navigation_goal.y);
-      }
-      makePlan();
+      RCLCPP_WARN(
+          logger_,
+          "Navigation aborted near frontier (%.2f, %.2f); keeping the target "
+          "eligible and retrying on the next planning cycle without blacklisting.",
+          frontier_goal.x, frontier_goal.y);
       return;
     case rclcpp_action::ResultCode::CANCELED:
       RCLCPP_DEBUG(logger_, "Goal was canceled");
@@ -955,8 +886,6 @@ void Explore::resume()
   resuming_ = true;
   RCLCPP_INFO(logger_, "Exploration resuming.");
   frontier_blacklist_.clear();
-  failed_navigation_goals_.clear();
-  consecutive_goal_aborts_ = 0;
   no_frontier_cycles_ = 0;
   exhausted_frontier_rounds_ = 0;
   exploration_started_at_ = this->now();

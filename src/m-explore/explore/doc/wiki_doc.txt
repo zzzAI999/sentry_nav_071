@@ -11,7 +11,7 @@ This package provides greedy frontier-based exploration. When node is running, r
 
 Unlike similar packages, {{{explore_lite}}} does not create its own costmap, which makes it easier to configure and more efficient (lighter on resources). Node simply subscribes to <<MsgLink(nav_msgs/OccupancyGrid)>> messages. Commands for robot movement are send to [[move_base]] node.
 
-Node can do frontier filtering and can operate even on non-inflated maps. Goal blacklisting allows to deal with places inaccessible for robot.
+Node can do frontier filtering and can operate even on non-inflated maps. Only frontiers with no clear navigation cell are excluded; elapsed time and aborted navigation attempts do not blacklist targets.
 
 <<Youtube(op0L0LyGNwY&rel=0)>>
 
@@ -81,11 +81,6 @@ param {
   6.default = `1.0`
   6.type = double
   6.desc = Rate in Hz at which new frontiers will computed and goal reconsidered.
-
-  7.name = ~progress_timeout
-  7.default = `30.0`
-  7.type = double
-  7.desc = Time in seconds. When robot do not make any progress for `progress_timeout`, current goal will be abandoned.
 
   8.name = ~potential_scale
   8.default = `1e-3`

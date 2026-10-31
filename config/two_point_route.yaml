@@ -1,0 +1,4 @@
+# Map coordinates in metres. Replace null with your actual coordinates.
+# Point 1 switches to point 2 within 0.5 m; point 2 finishes within 0.2 m.
+first: [null, null]
+second: [null, null]

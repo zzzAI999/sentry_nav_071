@@ -12,7 +12,6 @@
     return_to_init: true
     visualize: true
     planner_frequency: 2.0
-    progress_timeout: 20.0
     potential_scale: 3.0
     orientation_scale: 0.0
     gain_scale: 1.0
@@ -30,10 +29,7 @@
     navigation_goal_min_robot_distance_m: 0.6
     navigation_goal_max_projection_distance_m: 2.0
 
-    # A single controller abort must not end a fresh mapping run. Retry the
-    # frontier at alternate safe cells and require sustained evidence before
-    # declaring exploration complete.
-    failed_navigation_goal_clearance_m: 0.5
-    navigation_goal_abort_retries: 2
+    # A timeout or controller abort never blacklists a frontier. Require
+    # sustained geometric evidence before declaring exploration complete.
     minimum_exploration_duration_sec: 120.0
     completion_confirmation_cycles: 3

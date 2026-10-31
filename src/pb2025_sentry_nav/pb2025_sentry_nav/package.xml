@@ -12,6 +12,7 @@
   <depend>rclpy</depend>
   <depend>rclcpp</depend>
   <depend>action_msgs</depend>
+  <depend>lifecycle_msgs</depend>
   <depend>explore_lite_msgs</depend>
   <depend>nav2_msgs</depend>
   <depend>geometry_msgs</depend>

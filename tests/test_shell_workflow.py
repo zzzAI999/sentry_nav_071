@@ -59,13 +59,16 @@ class ShellWorkflowTest(unittest.TestCase):
             latest = root / "maps/latest.json"
             previous = latest.read_bytes()
             saved = json.loads(previous)["files"]
-            navigation = subprocess.run(["bash", str(ROOT / "start_navigation.sh")], env=env,
+            navigation = subprocess.run(["bash", str(ROOT / "start_navigation.sh"), "1", "2", "3", "4"], env=env,
                                         capture_output=True, text=True, timeout=30)
             self.assertEqual(navigation.returncode, 0, navigation.stdout + navigation.stderr)
             args = (root / "nav_args").read_text(encoding="utf-8").splitlines()
             self.assertIn(f"map:={saved['yaml']['path']}", args)
             self.assertIn(f"prior_pcd_file:={saved['pcd']['path']}", args)
             self.assertIn("enable_mcu_status_nav:=False", args)
+            self.assertIn("enable_two_point_route:=True", args)
+            self.assertIn("route_x1:=1.0", args)
+            self.assertIn("route_y2:=4.0", args)
 
             env["FAKE_INCOMPLETE"] = "1"
             failed = subprocess.run(["bash", str(ROOT / "start_mapping.sh")], env=env,

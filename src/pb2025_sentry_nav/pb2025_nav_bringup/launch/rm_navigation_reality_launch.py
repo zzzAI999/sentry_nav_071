@@ -158,6 +158,12 @@ def generate_launch_description():
 
     enable_pgm_initial_pose = LaunchConfiguration("enable_pgm_initial_pose")
 
+    enable_two_point_route = LaunchConfiguration("enable_two_point_route")
+    route_x1 = LaunchConfiguration("route_x1")
+    route_y1 = LaunchConfiguration("route_y1")
+    route_x2 = LaunchConfiguration("route_x2")
+    route_y2 = LaunchConfiguration("route_y2")
+
     enable_auto_explore = LaunchConfiguration("enable_auto_explore")
 
     explore_params_file = LaunchConfiguration("explore_params_file")
@@ -312,6 +318,15 @@ def generate_launch_description():
         "enable_pgm_initial_pose", default_value="True",
         description="Run the PGM initial-pose helper once after navigation starts",
     )
+
+    declare_enable_two_point_route_cmd = DeclareLaunchArgument(
+        "enable_two_point_route", default_value="False",
+        description="Automatically visit two points after localization and Nav2 are ready",
+    )
+    declare_route_x1_cmd = DeclareLaunchArgument("route_x1", default_value="", description="Point 1 map X in metres")
+    declare_route_y1_cmd = DeclareLaunchArgument("route_y1", default_value="", description="Point 1 map Y in metres")
+    declare_route_x2_cmd = DeclareLaunchArgument("route_x2", default_value="", description="Point 2 map X in metres")
+    declare_route_y2_cmd = DeclareLaunchArgument("route_y2", default_value="", description="Point 2 map Y in metres")
 
     declare_enable_auto_explore_cmd = DeclareLaunchArgument(
         "enable_auto_explore",
@@ -529,8 +544,25 @@ def generate_launch_description():
             name="rm071_pgm_initial_pose",
             output="screen",
             namespace=namespace,
-            parameters=[{"map_yaml": ParameterValue(map_yaml_file, value_type=str)}],
+            parameters=[{
+                "map_yaml": ParameterValue(map_yaml_file, value_type=str),
+                "input_topic": "registered_scan",
+                "use_sim_time": use_sim_time,
+            }],
+            remappings=[("/initialpose", "initialpose"), ("/tf", "tf"), ("/tf_static", "tf_static")],
         )],
+    )
+
+    start_two_point_route_node = Node(
+        condition=IfCondition(mode_and_true("navigation", enable_two_point_route)),
+        package="pb2025_sentry_nav",
+        executable="rm071_two_point_route.py",
+        name="rm071_two_point_route",
+        output="screen",
+        namespace=namespace,
+        arguments=["--", route_x1, route_y1, route_x2, route_y2],
+        parameters=[{"use_sim_time": use_sim_time}],
+        remappings=[("/tf", "tf"), ("/tf_static", "tf_static")],
     )
 
     rviz_cmd = IncludeLaunchDescription(
@@ -689,6 +721,12 @@ def generate_launch_description():
 
     ld.add_action(declare_enable_pgm_initial_pose_cmd)
 
+    ld.add_action(declare_enable_two_point_route_cmd)
+    ld.add_action(declare_route_x1_cmd)
+    ld.add_action(declare_route_y1_cmd)
+    ld.add_action(declare_route_x2_cmd)
+    ld.add_action(declare_route_y2_cmd)
+
     ld.add_action(declare_enable_auto_explore_cmd)
 
     ld.add_action(declare_explore_params_file_cmd)
@@ -738,6 +776,8 @@ def generate_launch_description():
     ld.add_action(bringup_cmd)
 
     ld.add_action(initial_pose_cmd)
+
+    ld.add_action(start_two_point_route_node)
 
     ld.add_action(delayed_mapping_bringup_cmd)
 
